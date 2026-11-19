@@ -65,15 +65,27 @@ def compute_umass_coherence(
     dtm,
     feature_names: List[str],
     top_n: int = 10,
-    epsilon: float = 1e-12
+    epsilon: float = 1.0,
+    normalize: bool = True
 ) -> Tuple[float, List[float]]:
     """
-    Compute Intrinsic UMass Topic Coherence (Mimno et al., 2011).
-    Does not require external reference corpora.
-    Formula:
-        C_UMass = sum_{m=2}^{M} sum_{l=1}^{m-1} log( (D(w_m, w_l) + eps) / D(w_l) )
-    
-    Higher (less negative, closer to 0) indicates more coherent topics where top words frequently co-occur.
+    Compute Intrinsic UMass Topic Coherence (Mimno et al., EMNLP 2011).
+    Evaluates co-occurrence of topic top words within the corpus training documents without external reference data.
+
+    Mathematical Formulation:
+        C_UMass(t) = sum_{m=2}^{M} sum_{l=1}^{m-1} log( (D(w_m, w_l) + eps) / (D(w_l) + eps) )
+
+    Parameters:
+        topic_words: List of top keywords per topic.
+        dtm: Document-Term Matrix (scipy sparse or numpy array).
+        feature_names: Ordered list of vocabulary terms.
+        top_n: Number of top keywords per topic to evaluate (typically 10).
+        epsilon: Smoothing pseudo-count (default=1.0 per Mimno et al. 2011, avoids log(0) and over-penalization).
+        normalize: If True, returns mean pairwise score divided by M*(M-1)/2 pairs. If False, returns raw sum.
+
+    Returns:
+        mean_coherence: Mean topic coherence across all topics.
+        topic_coherences: List of coherence scores for each topic.
     """
     # Create word-to-column index lookup
     word_to_idx = {word: idx for idx, word in enumerate(feature_names)}
@@ -107,11 +119,11 @@ def compute_umass_coherence(
                 d_ml = co_occurrence[m, l]
                 d_l = doc_freqs[indices[l]]
                 
-                # UMass score pair
+                # UMass score pair with canonical Mimno smoothing
                 score += np.log((d_ml + epsilon) / (d_l + epsilon))
                 pair_count += 1
 
-        topic_score = score / max(pair_count, 1)
+        topic_score = (score / max(pair_count, 1)) if normalize else score
         topic_coherences.append(float(round(topic_score, 4)))
 
     mean_coherence = float(round(np.mean(topic_coherences), 4)) if topic_coherences else 0.0

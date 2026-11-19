@@ -59,6 +59,8 @@ def export_model_joblib(topic_modeler) -> bytes:
         "feature_names": topic_modeler.feature_names,
         "topic_summaries": topic_modeler.topic_summaries,
         "training_time_sec": topic_modeler.training_time_sec,
+        "preprocessor_config": getattr(topic_modeler, "preprocessor_config", None),
+        "custom_labels": getattr(topic_modeler, "custom_labels", {}),
         "timestamp": datetime.now().isoformat(),
     }
     buffer = BytesIO()

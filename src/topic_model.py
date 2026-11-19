@@ -14,12 +14,13 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from src.preprocessing import TextPreprocessor
 
 
 class TopicModeler:
     """
     Manages Document-Term Matrix extraction and Latent Dirichlet Allocation (LDA) training,
-    topic extraction, document-topic probability inference, and topic labeling.
+    topic extraction, document-topic probability inference, topic labeling, and persistent preprocessing.
     """
 
     def __init__(
@@ -34,7 +35,10 @@ class TopicModeler:
         max_df: float = 0.95,
         max_features: Optional[int] = 1500,
         random_state: int = 42,
-        top_words_count: int = 10
+        top_words_count: int = 10,
+        preprocessor: Optional[TextPreprocessor] = None,
+        preprocessor_config: Optional[Dict[str, Any]] = None,
+        custom_labels: Optional[Dict[int, str]] = None
     ):
         self.n_topics = n_topics
         self.max_iter = max_iter
@@ -48,6 +52,16 @@ class TopicModeler:
         self.random_state = random_state
         self.top_words_count = top_words_count
 
+        self.preprocessor = preprocessor
+        self.preprocessor_config = preprocessor_config or (preprocessor.to_dict() if preprocessor else None)
+        if self.preprocessor is None and self.preprocessor_config is not None:
+            try:
+                self.preprocessor = TextPreprocessor.from_dict(self.preprocessor_config)
+            except Exception:
+                self.preprocessor = None
+
+        self.custom_labels: Dict[int, str] = custom_labels or {}
+
         self.vectorizer: Optional[CountVectorizer] = None
         self.tfidf_vectorizer: Optional[TfidfVectorizer] = None
         self.lda_model: Optional[LatentDirichletAllocation] = None
@@ -58,12 +72,21 @@ class TopicModeler:
         self.is_fitted: bool = False
         self.training_time_sec: float = 0.0
 
-    def fit(self, texts: Union[List[str], pd.Series]) -> "TopicModeler":
+    def fit(
+        self,
+        texts: Union[List[str], pd.Series],
+        preprocessor: Optional[TextPreprocessor] = None
+    ) -> "TopicModeler":
         """
         Build Document-Term Matrix with CountVectorizer and train LDA model.
+        Optionally binds a preprocessor instance to guarantee identical cleaning during inference.
         """
         import time
         start_time = time.time()
+
+        if preprocessor is not None:
+            self.preprocessor = preprocessor
+            self.preprocessor_config = preprocessor.to_dict()
 
         # Input validation
         clean_texts = [str(t) for t in texts if isinstance(t, str) and str(t).strip()]
@@ -182,10 +205,17 @@ class TopicModeler:
     def get_document_topic_df(self, original_df: pd.DataFrame, text_column: str) -> pd.DataFrame:
         """
         Combine original document DataFrame with topic probability distributions
-        and dominant topic assignments.
+        and dominant topic assignments. Validates row count consistency.
         """
         if not self.is_fitted or self.doc_topic_dist is None:
             raise ValueError("Model has not been fitted yet.")
+
+        if len(original_df) != len(self.doc_topic_dist):
+            raise ValueError(
+                f"Row count mismatch: provided DataFrame has {len(original_df)} rows, "
+                f"but LDA model was trained on {len(self.doc_topic_dist)} documents. "
+                "Ensure you pass the preprocessed DataFrame that matches the trained model."
+            )
 
         result_df = original_df.copy()
 
@@ -200,7 +230,8 @@ class TopicModeler:
 
         result_df['Dominant_Topic_ID'] = dominant_topic_indices + 1
         result_df['Dominant_Topic_Label'] = [
-            self.topic_summaries[idx]['auto_label'] for idx in dominant_topic_indices
+            self.custom_labels.get(idx + 1, self.topic_summaries[idx]['auto_label'])
+            for idx in dominant_topic_indices
         ]
         result_df['Dominant_Topic_Probability'] = np.round(dominant_topic_probs, 4)
 
@@ -209,32 +240,53 @@ class TopicModeler:
     def transform_new_text(self, text: str) -> Dict[str, Any]:
         """
         Infer topic probabilities for a new single document or query.
+        Applies identical preprocessing pipeline if preprocessor is bound.
         """
         if not self.is_fitted or self.vectorizer is None or self.lda_model is None:
             raise ValueError("Model is not fitted.")
 
-        transformed_dtm = self.vectorizer.transform([text])
+        if not text or not str(text).strip():
+            raise ValueError("Input text must be a non-empty string.")
+
+        # Apply exact preprocessing if available
+        cleaned_text = self.preprocessor.clean_text(str(text)) if self.preprocessor is not None else str(text)
+
+        transformed_dtm = self.vectorizer.transform([cleaned_text])
+        matched_terms = int(transformed_dtm.nnz)
+        is_oov = (matched_terms == 0)
+
         doc_distribution = self.lda_model.transform(transformed_dtm)[0]
 
         dominant_idx = int(np.argmax(doc_distribution))
         dominant_prob = float(round(doc_distribution[dominant_idx], 4))
 
         distribution_dict = {
-            f"Topic {i + 1}": float(round(prob, 4))
+            self.topic_summaries[i]['topic_name']: float(round(prob, 4))
             for i, prob in enumerate(doc_distribution)
         }
 
+        # Use verified custom label if available
+        label = self.custom_labels.get(
+            dominant_idx + 1,
+            self.topic_summaries[dominant_idx]['auto_label']
+        )
+
         return {
             'text': text,
+            'cleaned_text': cleaned_text,
+            'matched_terms': matched_terms,
+            'is_oov': is_oov,
             'distribution': distribution_dict,
             'dominant_topic_id': dominant_idx + 1,
-            'dominant_topic_label': self.topic_summaries[dominant_idx]['auto_label'],
+            'dominant_topic_label': label,
             'dominant_probability': dominant_prob
         }
 
     def save(self, filepath: Union[str, Path]) -> str:
         """
         Persist trained model bundle to disk via joblib.
+        Saves vectorizers, LDA model, feature names, topic summaries,
+        preprocessing configuration, custom labels, and training metadata.
         """
         if not self.is_fitted:
             raise ValueError("Cannot save an unfitted model.")
@@ -260,6 +312,8 @@ class TopicModeler:
             'feature_names': self.feature_names,
             'topic_summaries': self.topic_summaries,
             'training_time_sec': self.training_time_sec,
+            'preprocessor_config': self.preprocessor_config or (self.preprocessor.to_dict() if self.preprocessor else None),
+            'custom_labels': self.custom_labels,
             'timestamp': datetime.now().isoformat()
         }
 
@@ -269,7 +323,7 @@ class TopicModeler:
     @classmethod
     def load(cls, filepath: Union[str, Path]) -> "TopicModeler":
         """
-        Load a trained model bundle from disk.
+        Load a trained model bundle from disk and reconstruct preprocessor.
         """
         path = Path(filepath)
         if not path.exists():
@@ -287,7 +341,9 @@ class TopicModeler:
             max_df=bundle['max_df'],
             max_features=bundle['max_features'],
             random_state=bundle['random_state'],
-            top_words_count=bundle['top_words_count']
+            top_words_count=bundle['top_words_count'],
+            preprocessor_config=bundle.get('preprocessor_config'),
+            custom_labels=bundle.get('custom_labels', {})
         )
         instance.vectorizer = bundle['vectorizer']
         instance.tfidf_vectorizer = bundle.get('tfidf_vectorizer')

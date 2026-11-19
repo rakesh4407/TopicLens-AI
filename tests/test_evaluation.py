@@ -75,6 +75,30 @@ class TestEvaluation(unittest.TestCase):
         self.assertEqual(len(topic_scores), 2)
         self.assertLessEqual(mean_umass, 0.0)
 
+    def test_compute_umass_coherence_raw_sum(self):
+        corpus = get_sample_data()
+        tm = TopicModeler(n_topics=2, min_df=1, random_state=42)
+        tm.fit(corpus)
+
+        topic_words = [s['top_words'] for s in tm.topic_summaries]
+        raw_sum, topic_raw = compute_umass_coherence(
+            topic_words=topic_words,
+            dtm=tm.dtm,
+            feature_names=tm.feature_names,
+            top_n=5,
+            normalize=False
+        )
+        self.assertLessEqual(raw_sum, 0.0)
+        # Raw sum across 10 pairs (5*4/2) should be larger in magnitude than mean pairwise
+        norm_mean, _ = compute_umass_coherence(
+            topic_words=topic_words,
+            dtm=tm.dtm,
+            feature_names=tm.feature_names,
+            top_n=5,
+            normalize=True
+        )
+        self.assertAlmostEqual(raw_sum / 10, norm_mean, places=2)
+
     def test_evaluate_model_comprehensively(self):
         corpus = get_sample_data()
         df = pd.DataFrame({'clean_text': corpus})

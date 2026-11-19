@@ -65,7 +65,30 @@ class TestPreprocessing(unittest.TestCase):
         self.assertGreaterEqual(stats['removed_empty_count'], 1)
         self.assertIn('clean_text', cleaned_df.columns)
         self.assertIn('clean_word_count', cleaned_df.columns)
+        self.assertIn('original_doc_id', cleaned_df.columns)
+        self.assertIn('processed_doc_id', cleaned_df.columns)
+        self.assertEqual(cleaned_df['processed_doc_id'].tolist(), [1, 2])
+        self.assertEqual(cleaned_df['original_doc_id'].tolist(), [1, 2])
         self.assertGreater(stats['vocab_reduction_percent'], 0)
+
+    def test_preprocessor_to_and_from_dict(self):
+        p1 = TextPreprocessor(
+            lowercase=True,
+            remove_html=False,
+            remove_stopwords=True,
+            lemmatize=True,
+            min_word_len=4,
+            custom_stopwords=["customstop"]
+        )
+        cfg = p1.to_dict()
+        self.assertEqual(cfg['min_word_len'], 4)
+        self.assertFalse(cfg['remove_html'])
+        self.assertIn("customstop", cfg['custom_stopwords'])
+
+        p2 = TextPreprocessor.from_dict(cfg)
+        self.assertEqual(p2.min_word_len, 4)
+        self.assertFalse(p2.remove_html)
+        self.assertIn("customstop", p2.stopwords)
 
     def test_get_before_after_samples(self):
         orig = pd.Series(["Hello <b>world</b>!", "Testing NLP 123"])

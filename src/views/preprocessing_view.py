@@ -78,21 +78,10 @@ def render_preprocessing_view():
             )
 
             # Store in session state
+            st.session_state['preprocessor'] = preprocessor
             st.session_state['cleaned_df'] = cleaned_df
             st.session_state['preprocessing_stats'] = stats
-            st.session_state['preprocessor_config'] = {
-                'lowercase': lowercase,
-                'remove_html': remove_html,
-                'remove_urls': remove_urls,
-                'remove_punctuation': remove_punct,
-                'remove_numbers': remove_numbers,
-                'remove_stopwords': remove_stops,
-                'lemmatize': lemmatize,
-                'drop_empty': drop_empty,
-                'drop_duplicates': drop_dups,
-                'min_len': min_len,
-                'custom_stopwords': custom_stopwords_list
-            }
+            st.session_state['preprocessor_config'] = preprocessor.to_dict()
 
             # Invalidate downstream model if data changed
             st.session_state['topic_modeler'] = None

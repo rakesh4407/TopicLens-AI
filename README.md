@@ -75,8 +75,11 @@ In the era of information overload, organizations accumulate massive repositorie
 ```
 TopicLens-AI/
 │
+├── .github/
+│   └── workflows/              # GitHub Actions CI matrix (Ubuntu & Windows, Py 3.12 & 3.13)
+│       └── test.yml
 ├── app.py                      # Main application entry point & unified router
-├── requirements.txt            # Python dependencies
+├── requirements.txt            # Python dependencies (tested on 3.12 & 3.13)
 ├── README.md                   # Comprehensive documentation & capstone guide
 ├── REPORT_OUTLINE.md           # Formal academic capstone report structure
 ├── PRESENTATION_OUTLINE.md     # 15-slide capstone presentation outline
@@ -123,11 +126,12 @@ TopicLens-AI/
 │   └── sample/                 # Curated benchmark datasets
 │       ├── 20newsgroups_subset.csv
 │       ├── customer_feedback.csv
-│       └── tech_news.csv
+│       ├── tech_news.csv
+│       └── biomedical_research.csv
 │
-├── models/                     # Saved Joblib model bundles
+├── models/                     # Serialized Joblib model bundles
 ├── outputs/                    # Exported analysis reports
-└── tests/                      # Automated unit & integration tests (35 tests)
+└── tests/                      # Automated unit & integration tests (43 tests)
     ├── test_data_loader.py
     ├── test_preprocessing.py
     ├── test_feature_engineering.py
@@ -268,7 +272,7 @@ Open your browser at **`http://localhost:8501`**.
 
 ## 🧪 Running Automated Tests
 
-TopicLens AI includes a complete automated test suite of **35 unit and integration tests** covering all pipeline layers:
+TopicLens AI includes a complete automated test suite of **43 unit and integration tests** covering all pipeline layers:
 
 ```bash
 python -m unittest discover tests -v

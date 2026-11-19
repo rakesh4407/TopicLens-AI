@@ -105,6 +105,43 @@ class TestTopicModel(unittest.TestCase):
         self.assertEqual(tm.doc_topic_prior, 0.5)
         self.assertEqual(tm.topic_word_prior, 0.1)
 
+    def test_topic_modeler_persists_preprocessor_and_custom_labels(self):
+        from src.preprocessing import TextPreprocessor
+        prep = TextPreprocessor(lowercase=True, min_word_len=4)
+        corpus = get_mock_corpus()
+        tm = TopicModeler(
+            n_topics=2,
+            min_df=1,
+            random_state=42,
+            preprocessor=prep,
+            custom_labels={1: "Deep Space Exploration", 2: "Clinical Medicine"}
+        )
+        tm.fit(corpus)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = Path(tmpdir) / "full_bundle_model.joblib"
+            tm.save(model_path)
+            loaded = TopicModeler.load(model_path)
+
+            self.assertIsNotNone(loaded.preprocessor)
+            self.assertEqual(loaded.preprocessor.min_word_len, 4)
+            self.assertEqual(loaded.custom_labels.get(1), "Deep Space Exploration")
+            self.assertEqual(loaded.custom_labels.get(2), "Clinical Medicine")
+
+            # Check that custom label is used in transform_new_text
+            pred = loaded.transform_new_text("space telescope planetary orbit")
+            self.assertIn("Deep Space Exploration", pred['dominant_topic_label'])
+
+    def test_document_topic_df_validates_shape_mismatch(self):
+        corpus = get_mock_corpus()
+        tm = TopicModeler(n_topics=2, min_df=1, random_state=42)
+        tm.fit(corpus)
+
+        # Pass a DataFrame with different length
+        wrong_df = pd.DataFrame({'clean_text': ["only one document"]})
+        with self.assertRaises(ValueError):
+            tm.get_document_topic_df(wrong_df, 'clean_text')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -60,8 +60,11 @@ def load_csv_data(
             last_err = e
             continue
 
-    if df is None:
-        raise ValueError(f"Failed to read CSV with supported encodings. Last error: {last_err}")
+    if df is None or len(df.columns) == 0:
+        raise ValueError(f"Failed to read CSV or file has no columns. Last error: {last_err}")
+
+    if len(df) == 0:
+        raise ValueError("Uploaded CSV file is empty (0 rows). Please upload a dataset with documents.")
 
     text_cols = detect_text_columns(df)
     
@@ -201,6 +204,7 @@ def load_sample_dataset(dataset_type: str = '20newsgroups') -> Tuple[pd.DataFram
         '20newsgroups_tech': ('20newsgroups_subset.csv', 'text'),
         'customer_feedback': ('customer_feedback.csv', 'feedback_text'),
         'tech_news': ('tech_news.csv', 'content'),
+        'biomedical_research': ('biomedical_research.csv', 'abstract_text'),
     }
     if dataset_type in legacy_map:
         fname, col = legacy_map[dataset_type]

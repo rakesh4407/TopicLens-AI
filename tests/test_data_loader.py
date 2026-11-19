@@ -42,6 +42,20 @@ class TestDataLoader(unittest.TestCase):
         self.assertGreater(len(df), 0)
         self.assertIn(col, df.columns)
 
+    def test_load_sample_dataset_biomedical(self):
+        df, col = load_sample_dataset('biomedical_research')
+        self.assertEqual(len(df), 25)
+        self.assertIn(col, df.columns)
+
+    def test_load_empty_csv_raises(self):
+        empty_buffer = StringIO("")
+        with self.assertRaises(ValueError):
+            load_csv_data(empty_buffer)
+
+        zero_rows_buffer = StringIO("col_a,col_b\n")
+        with self.assertRaises(ValueError):
+            load_csv_data(zero_rows_buffer)
+
     def test_get_dataset_summary(self):
         df = pd.DataFrame({
             'text': [

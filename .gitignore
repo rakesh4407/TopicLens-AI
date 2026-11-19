@@ -20,9 +20,14 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# Output test artifacts and temporary models
-models/*.tmp
-outputs/*.tmp
+# Output test artifacts, serialized models and exports
+models/*
+!models/.gitkeep
+outputs/*
+!outputs/.gitkeep
+*.joblib
+*.tmp
 *.log
 *.pdf
 Screenshot*.png
+.matplotlib/

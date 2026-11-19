@@ -91,6 +91,27 @@ class TestTopicInferencer(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.inferencer.get_topic_keywords(topic_id=99)
 
+    def test_predict_out_of_vocabulary_flag(self):
+        # Input with words completely disjoint from training vocabulary
+        nonsense_text = "xyzzy qux blort zzzzz"
+        res = self.inferencer.predict(nonsense_text)
+        self.assertTrue(res.get('is_oov', False))
+        self.assertEqual(res.get('matched_terms', 0), 0)
+        self.assertEqual(res['confidence_level'], "Zero Match / Out-of-Vocabulary")
+
+    def test_predict_applies_preprocessing(self):
+        from src.preprocessing import TextPreprocessor
+        prep = TextPreprocessor(lowercase=True, remove_html=True, remove_numbers=True)
+        tm_prep = TopicModeler(n_topics=2, min_df=1, random_state=42, preprocessor=prep)
+        tm_prep.fit(["computer vision artificial intelligence", "space telescope planetary exploration"])
+        infer = TopicInferencer(tm_prep)
+
+        html_query = "<h1>COMPUTER VISION</h1> <p>artificial intelligence 9999</p>"
+        res = infer.predict(html_query)
+        self.assertEqual(res['dominant_topic_id'], 1)
+        self.assertNotIn("<h1>", res.get('cleaned_text', ''))
+        self.assertNotIn("9999", res.get('cleaned_text', ''))
+
 
 if __name__ == "__main__":
     unittest.main()

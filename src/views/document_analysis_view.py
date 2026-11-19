@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from src.session_manager import has_trained_model
+from src.inference import TopicInferencer
 
 try:
     import plotly.express as px
@@ -142,21 +143,34 @@ def render_document_analysis_view():
                 st.warning("Please enter some text to analyze.")
             else:
                 try:
-                    prediction = tm.transform_new_text(user_input_text)
+                    inferencer = TopicInferencer(tm)
+                    prediction = inferencer.predict(user_input_text)
 
                     st.markdown("---")
                     st.subheader("Prediction Result")
 
-                    r1, r2 = st.columns(2)
+                    r1, r2, r3, r4 = st.columns(4)
                     with r1:
                         st.metric("Predicted Dominant Topic", prediction['dominant_topic_label'])
                     with r2:
-                        st.metric("Confidence Probability", f"{prediction['dominant_probability']:.2%}")
+                        st.metric("Probability", f"{prediction['dominant_probability']:.2%}")
+                    with r3:
+                        st.metric("Confidence Level", prediction['confidence_level'])
+                    with r4:
+                        st.metric("Matched Terms", prediction.get('matched_terms', 0))
+
+                    if prediction.get('is_oov'):
+                        st.warning(
+                            "⚠️ **Out-of-Vocabulary Notice:** None of the terms in the input text matched "
+                            "the model vocabulary. The assigned probabilities reflect the Dirichlet prior distribution."
+                        )
+                    else:
+                        st.caption(f"**Preprocessed Tokens Evaluated:** `{prediction.get('cleaned_text', '')}`")
 
                     # Distribution chart
                     pred_dist_df = pd.DataFrame([
-                        {'Topic': tm.topic_summaries[i]['auto_label'], 'Probability': prob}
-                        for i, (topic_name, prob) in enumerate(prediction['distribution'].items())
+                        {'Topic': topic_name, 'Probability': prob}
+                        for topic_name, prob in prediction['distribution'].items()
                     ])
 
                     if HAS_PLOTLY:

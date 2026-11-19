@@ -29,86 +29,70 @@ class TopicInferencer:
     def predict(self, text: str) -> Dict[str, Any]:
         """
         Infer the topic distribution for a single document.
+        Applies identical preprocessing configured during model training.
 
         Returns
         -------
         dict with keys:
           - text: original input
+          - cleaned_text: preprocessed text
+          - matched_terms: count of vocabulary terms found in document
+          - is_oov: boolean indicating if input had zero vocabulary terms
           - distribution: {topic_label: probability}
           - dominant_topic_id: 1-based topic index
-          - dominant_topic_label: auto-label string
+          - dominant_topic_label: verified or auto-generated label string
           - dominant_probability: float
-          - confidence_level: 'High' / 'Medium' / 'Low'
+          - confidence_level: 'High' / 'Medium' / 'Low' / 'Zero Match / Out-of-Vocabulary'
         """
         if not text or not str(text).strip():
             raise ValueError("Input text must be a non-empty string.")
 
-        tm = self.topic_modeler
-        dtm = tm.vectorizer.transform([str(text)])
-        distribution = tm.lda_model.transform(dtm)[0]
+        res = self.topic_modeler.transform_new_text(text)
 
-        dominant_idx = int(np.argmax(distribution))
-        dominant_prob = float(round(distribution[dominant_idx], 4))
-
-        # Confidence band
-        if dominant_prob >= 0.60:
+        # Confidence band with explicit OOV / Zero Match handling
+        if res.get('is_oov', False) or res.get('matched_terms', 0) == 0:
+            confidence = "Zero Match / Out-of-Vocabulary"
+        elif res['dominant_probability'] >= 0.60:
             confidence = "High"
-        elif dominant_prob >= 0.35:
+        elif res['dominant_probability'] >= 0.35:
             confidence = "Medium"
         else:
             confidence = "Low"
 
-        distribution_dict = {
-            tm.topic_summaries[i]["topic_name"]: float(round(p, 4))
-            for i, p in enumerate(distribution)
-        }
-
-        return {
-            "text": text,
-            "distribution": distribution_dict,
-            "dominant_topic_id": dominant_idx + 1,
-            "dominant_topic_label": tm.topic_summaries[dominant_idx]["auto_label"],
-            "dominant_probability": dominant_prob,
-            "confidence_level": confidence,
-        }
+        res['confidence_level'] = confidence
+        return res
 
     def batch_predict(
         self, texts: Union[List[str], pd.Series]
     ) -> pd.DataFrame:
         """
         Infer topic distributions for a list of documents.
+        Applies identical model preprocessing pipeline to each text.
 
         Returns
         -------
-        pd.DataFrame with columns: text, dominant_topic_id, dominant_topic_label,
-        dominant_probability, confidence_level, Topic_1_Prob … Topic_K_Prob
+        pd.DataFrame with columns: text_snippet, matched_terms, dominant_topic_id,
+        dominant_topic_label, dominant_probability, confidence_level, Topic_1_Prob … Topic_K_Prob
         """
         tm = self.topic_modeler
-        clean = [str(t) for t in texts if str(t).strip()]
+        clean_inputs = [str(t) for t in texts if str(t).strip()]
 
-        if not clean:
+        if not clean_inputs:
             return pd.DataFrame()
 
-        dtm = tm.vectorizer.transform(clean)
-        distributions = tm.lda_model.transform(dtm)
-
         rows = []
-        for i, dist in enumerate(distributions):
-            dominant_idx = int(np.argmax(dist))
-            dominant_prob = float(round(dist[dominant_idx], 4))
-            confidence = (
-                "High" if dominant_prob >= 0.60
-                else ("Medium" if dominant_prob >= 0.35 else "Low")
-            )
+        for raw_text in clean_inputs:
+            pred = self.predict(raw_text)
             row = {
-                "text_snippet": clean[i][:120] + ("…" if len(clean[i]) > 120 else ""),
-                "dominant_topic_id": dominant_idx + 1,
-                "dominant_topic_label": tm.topic_summaries[dominant_idx]["auto_label"],
-                "dominant_probability": dominant_prob,
-                "confidence_level": confidence,
+                "text_snippet": raw_text[:120] + ("…" if len(raw_text) > 120 else ""),
+                "matched_terms": pred.get("matched_terms", 0),
+                "dominant_topic_id": pred["dominant_topic_id"],
+                "dominant_topic_label": pred["dominant_topic_label"],
+                "dominant_probability": pred["dominant_probability"],
+                "confidence_level": pred["confidence_level"],
             }
-            for t_idx, prob in enumerate(dist):
-                row[f"Topic_{t_idx + 1}_Prob"] = float(round(prob, 4))
+            for topic_name, prob in pred["distribution"].items():
+                row[f"{topic_name.replace(' ', '_')}_Prob"] = prob
             rows.append(row)
 
         return pd.DataFrame(rows)

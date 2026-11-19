@@ -16,6 +16,7 @@ DEFAULT_STATE = {
     'dataset_summary': None,
     'cleaned_df': None,
     'preprocessing_stats': None,
+    'preprocessor': None,
     'preprocessor_config': None,
     'topic_modeler': None,
     'doc_topic_df': None,

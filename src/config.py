@@ -112,6 +112,17 @@ SAMPLE_DATASETS: List[Dict] = [
         ),
         "is_synthetic": True,
     },
+    {
+        "id": "biomedical_research",
+        "label": "Biomedical Research — Cardiology, Neuroscience, Oncology & Pharmacology",
+        "file": "biomedical_research.csv",
+        "text_col": "abstract_text",
+        "description": (
+            "Curated scientific abstracts covering five biomedical specialties: "
+            "Cardiology, Neuroscience, Oncology, Pharmacology, and Epidemiology."
+        ),
+        "is_synthetic": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------

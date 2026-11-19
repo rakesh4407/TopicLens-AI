@@ -57,6 +57,7 @@ class TextPreprocessor:
         self.remove_stopwords = remove_stopwords
         self.lemmatize = lemmatize
         self.min_word_len = min_word_len
+        self.custom_stopwords = list(custom_stopwords) if custom_stopwords else []
 
         # Initialize Stopwords
         self.stopwords = set(DEFAULT_STOPWORDS)
@@ -68,6 +69,35 @@ class TextPreprocessor:
         self.lemmatizer = None
         if self.lemmatize:
             self._load_lemmatizer()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize configuration parameters into a plain dictionary."""
+        return {
+            'lowercase': self.lowercase,
+            'remove_html': self.remove_html,
+            'remove_urls': self.remove_urls,
+            'remove_punctuation': self.remove_punctuation,
+            'remove_numbers': self.remove_numbers,
+            'remove_stopwords': self.remove_stopwords,
+            'lemmatize': self.lemmatize,
+            'min_word_len': self.min_word_len,
+            'custom_stopwords': list(self.custom_stopwords)
+        }
+
+    @classmethod
+    def from_dict(cls, config: Dict[str, Any]) -> "TextPreprocessor":
+        """Instantiate a TextPreprocessor from a configuration dictionary."""
+        return cls(
+            lowercase=config.get('lowercase', True),
+            remove_html=config.get('remove_html', True),
+            remove_urls=config.get('remove_urls', True),
+            remove_punctuation=config.get('remove_punctuation', True),
+            remove_numbers=config.get('remove_numbers', True),
+            remove_stopwords=config.get('remove_stopwords', True),
+            lemmatize=config.get('lemmatize', True),
+            min_word_len=config.get('min_word_len', 3),
+            custom_stopwords=config.get('custom_stopwords', [])
+        )
 
     def _load_nltk_stopwords(self) -> None:
         """Attempt to load NLTK stopwords, fallback to DEFAULT_STOPWORDS if not available."""
@@ -179,6 +209,10 @@ def preprocess_corpus(
     original_count = len(df)
     work_df = df.copy()
 
+    # Track original document index before any filtering
+    if 'original_doc_id' not in work_df.columns:
+        work_df['original_doc_id'] = work_df.index + 1
+
     # Ensure text is string and fill NaNs
     work_df[text_column] = work_df[text_column].fillna("").astype(str)
 
@@ -205,6 +239,7 @@ def preprocess_corpus(
         work_df = work_df.drop_duplicates(subset=['clean_text']).copy()
 
     work_df.reset_index(drop=True, inplace=True)
+    work_df['processed_doc_id'] = range(1, len(work_df) + 1)
     final_count = len(work_df)
 
     # Compute vocabulary metrics

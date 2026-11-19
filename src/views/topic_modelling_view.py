@@ -33,6 +33,8 @@ def render_topic_modelling_view():
                     text_column=st.session_state['text_col'],
                     preprocessor=preprocessor
                 )
+                st.session_state['preprocessor'] = preprocessor
+                st.session_state['preprocessor_config'] = preprocessor.to_dict()
                 st.session_state['cleaned_df'] = cleaned_df
                 st.session_state['preprocessing_stats'] = stats
             st.success("Default preprocessing applied! You can now configure and train LDA.")
@@ -151,6 +153,9 @@ def render_topic_modelling_view():
     if st.button("🚀 Train LDA Model", type="primary", use_container_width=True):
         try:
             with st.spinner(f"Fitting Latent Dirichlet Allocation (K={n_topics}) over {n_docs} documents..."):
+                active_preproc = st.session_state.get('preprocessor')
+                active_labels = st.session_state.get('custom_labels', {})
+
                 modeler = TopicModeler(
                     n_topics=n_topics,
                     max_iter=max_iter,
@@ -162,9 +167,11 @@ def render_topic_modelling_view():
                     max_df=float(max_df),
                     max_features=max_features,
                     random_state=int(random_seed),
-                    top_words_count=top_words_count
+                    top_words_count=top_words_count,
+                    preprocessor=active_preproc,
+                    custom_labels=active_labels
                 )
-                modeler.fit(cleaned_df['clean_text'])
+                modeler.fit(cleaned_df['clean_text'], preprocessor=active_preproc)
 
                 # Generate Document-Topic assignments
                 doc_topic_df = modeler.get_document_topic_df(cleaned_df, 'clean_text')
