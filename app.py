@@ -7,7 +7,6 @@ BCA AI & Data Science Capstone Project #9
 import sys
 from pathlib import Path
 
-# Add project root to sys.path
 ROOT_DIR = Path(__file__).resolve().parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -31,7 +30,7 @@ from src.views.model_evaluation_view import render_model_evaluation_view
 from src.views.export_results_view import render_export_results_view
 from src.views.about_project_view import render_about_project_view
 
-# ─── Page Configuration ───────────────────────────────────────────────────────
+# ── Page config (must be first Streamlit call) ────────────────────────────────
 st.set_page_config(
     page_title="TopicLens AI — Text Topic Modelling",
     page_icon="🔍",
@@ -39,416 +38,275 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── Global CSS Design System ─────────────────────────────────────────────────
-st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+# ── CSS injected as a single clean <style> block (no <link> tags) ─────────────
+_CSS = """
 <style>
-
-/* ══════════════════════════════════════════════════════
-   GLOBAL RESET & TYPOGRAPHY
-══════════════════════════════════════════════════════ */
+/* ── GLOBAL ──────────────────────────────────────────── */
 html, body, [class*="css"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   MAIN CONTENT AREA
-══════════════════════════════════════════════════════ */
 .main .block-container {
-    padding-top: 1.8rem !important;
+    padding-top: 1.6rem !important;
     padding-bottom: 3rem !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important;
     max-width: 1400px !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   SIDEBAR — Dark Glass Theme
-══════════════════════════════════════════════════════ */
+/* ── SIDEBAR ──────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0D1B2A 0%, #1a2744 50%, #0f172a 100%) !important;
-    border-right: 1px solid rgba(99, 179, 237, 0.15) !important;
-}
-[data-testid="stSidebar"] > div:first-child {
-    padding-top: 0 !important;
+    background: linear-gradient(180deg, #0d1b2a 0%, #1a2744 55%, #0f172a 100%) !important;
+    border-right: 1px solid rgba(99,179,237,0.15) !important;
 }
 [data-testid="stSidebarContent"] {
     background: transparent !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   BRAND HEADER
-══════════════════════════════════════════════════════ */
-.brand-header {
-    padding: 24px 20px 18px 20px;
-    background: linear-gradient(135deg, rgba(37,99,235,0.3) 0%, rgba(124,58,237,0.2) 100%);
-    border-bottom: 1px solid rgba(99,179,237,0.2);
-    margin-bottom: 8px;
+/* ── BRAND ────────────────────────────────────────────── */
+.tl-brand {
+    padding: 20px 18px 16px 18px;
+    background: linear-gradient(135deg,rgba(37,99,235,.25),rgba(124,58,237,.18));
+    border-bottom: 1px solid rgba(99,179,237,.2);
+    margin-bottom: 6px;
 }
-.brand-logo {
+.tl-brand-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 7px;
 }
-.brand-icon {
-    width: 38px;
-    height: 38px;
-    background: linear-gradient(135deg, #2563EB, #7C3AED);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 4px 15px rgba(37,99,235,0.4);
+.tl-brand-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg,#2563eb,#7c3aed);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 14px rgba(37,99,235,.4);
+    flex-shrink: 0;
 }
-.brand-name {
-    font-size: 1.3rem;
+.tl-brand-name {
+    font-size: 1.2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #60A5FA, #A78BFA);
+    background: linear-gradient(135deg,#60a5fa,#a78bfa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: -0.3px;
+    letter-spacing: -.3px;
     line-height: 1.1;
 }
-.brand-tagline {
-    font-size: 0.72rem;
-    color: rgba(148, 163, 184, 0.9);
-    letter-spacing: 0.3px;
-    margin-top: 2px;
+.tl-brand-tag {
+    font-size: .7rem;
+    color: rgba(148,163,184,.85);
+    letter-spacing: .3px;
 }
-.brand-badge {
+.tl-brand-pill {
     display: inline-block;
-    padding: 2px 8px;
-    background: linear-gradient(135deg, rgba(37,99,235,0.3), rgba(124,58,237,0.3));
-    border: 1px solid rgba(99,179,237,0.3);
+    padding: 2px 9px;
+    background: linear-gradient(135deg,rgba(37,99,235,.25),rgba(124,58,237,.25));
+    border: 1px solid rgba(99,179,237,.3);
     border-radius: 20px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #93C5FD;
-    letter-spacing: 0.5px;
+    font-size: .62rem;
+    font-weight: 700;
+    color: #93c5fd;
+    letter-spacing: .5px;
     text-transform: uppercase;
-    margin-top: 6px;
 }
-
-/* ══════════════════════════════════════════════════════
-   NAVIGATION SECTION LABEL
-══════════════════════════════════════════════════════ */
-.nav-section-label {
-    font-size: 0.65rem;
+/* ── NAV LABEL ────────────────────────────────────────── */
+.tl-nav-label {
+    font-size: .62rem;
     font-weight: 700;
     letter-spacing: 1.2px;
     text-transform: uppercase;
-    color: rgba(100,116,139,0.9);
-    padding: 12px 20px 4px 20px;
+    color: rgba(100,116,139,.8);
+    padding: 10px 18px 3px 18px;
 }
-
-/* ══════════════════════════════════════════════════════
-   RADIO NAV BUTTONS — Override Streamlit default
-══════════════════════════════════════════════════════ */
-[data-testid="stSidebar"] [data-testid="stRadio"] > label {
-    display: none !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] > div {
-    gap: 2px !important;
-}
+/* ── RADIO (hide circles, style labels) ───────────────── */
+[data-testid="stSidebar"] [data-testid="stRadio"] > label { display:none !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] > div { gap:1px !important; }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div > label {
     display: flex !important;
     align-items: center !important;
-    padding: 9px 20px !important;
+    padding: 8px 18px !important;
     margin: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 7px !important;
     cursor: pointer !important;
-    transition: all 0.18s ease !important;
-    font-size: 0.875rem !important;
+    font-size: .855rem !important;
     font-weight: 500 !important;
-    color: rgba(203, 213, 225, 0.85) !important;
+    color: rgba(203,213,225,.8) !important;
     border: 1px solid transparent !important;
-    gap: 10px !important;
+    transition: all .15s ease !important;
+    gap: 8px !important;
     width: 100% !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div > label:hover {
-    background: rgba(99,179,237,0.08) !important;
-    color: #E2E8F0 !important;
-    border-color: rgba(99,179,237,0.15) !important;
-    padding-left: 24px !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] > div > label[data-baseweb="radio"] input:checked ~ div,
-[data-testid="stSidebar"] [data-testid="stRadio"] > div > label[aria-checked="true"] {
-    background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(124,58,237,0.2)) !important;
-    color: #60A5FA !important;
-    border-color: rgba(37,99,235,0.4) !important;
-    font-weight: 600 !important;
-}
-/* Hide the radio circle */
-[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {
-    font-size: 0.875rem !important;
-    margin: 0 !important;
+    background: rgba(99,179,237,.09) !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(99,179,237,.2) !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div > label > div:first-child {
     display: none !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   PIPELINE STATUS CARDS
-══════════════════════════════════════════════════════ */
-.pipeline-container {
-    padding: 14px 16px;
-    margin: 8px 12px;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(99,179,237,0.12);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
+/* ── PIPELINE STATUS ──────────────────────────────────── */
+.tl-pipe {
+    padding: 12px 14px;
+    margin: 6px 10px;
+    background: rgba(10,20,38,.55);
+    border: 1px solid rgba(99,179,237,.12);
+    border-radius: 10px;
 }
-.pipeline-title {
-    font-size: 0.65rem;
+.tl-pipe-title {
+    font-size: .6rem;
     font-weight: 700;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.1px;
     text-transform: uppercase;
-    color: rgba(100,116,139,0.9);
-    margin-bottom: 10px;
+    color: rgba(100,116,139,.85);
+    margin-bottom: 8px;
 }
-.pipeline-step {
+.tl-step {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 7px 0;
-    border-bottom: 1px solid rgba(99,179,237,0.07);
+    gap: 9px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(99,179,237,.06);
 }
-.pipeline-step:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-.step-dot-done {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #10B981, #34D399);
-    box-shadow: 0 0 6px rgba(16,185,129,0.5);
+.tl-step:last-child { border-bottom: none; }
+.tl-dot-g {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: linear-gradient(135deg,#10b981,#34d399);
+    box-shadow: 0 0 6px rgba(16,185,129,.5);
     flex-shrink: 0;
 }
-.step-dot-pending {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(100,116,139,0.4);
-    border: 1px solid rgba(100,116,139,0.3);
+.tl-dot-b {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: linear-gradient(135deg,#2563eb,#60a5fa);
+    box-shadow: 0 0 6px rgba(37,99,235,.5);
+    flex-shrink: 0;
+    animation: tl-pulse 1.8s infinite;
+}
+.tl-dot-x {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(100,116,139,.35);
+    border: 1px solid rgba(100,116,139,.25);
     flex-shrink: 0;
 }
-.step-label {
-    font-size: 0.78rem;
-    font-weight: 500;
-    flex: 1;
+@keyframes tl-pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+.tl-step-lbl { font-size: .77rem; font-weight: 500; flex: 1; }
+.tl-lbl-g { color: #94a3b8; }
+.tl-lbl-b { color: #60a5fa; font-weight: 600; }
+.tl-lbl-x { color: rgba(100,116,139,.65); }
+.tl-badge-g {
+    font-size: .58rem; font-weight: 700; padding: 2px 7px;
+    background: rgba(16,185,129,.15); color: #34d399;
+    border: 1px solid rgba(16,185,129,.3); border-radius: 20px;
 }
-.step-label-done { color: #94A3B8; }
-.step-label-pending { color: rgba(100,116,139,0.7); }
-.step-badge-done {
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 2px 7px;
-    background: rgba(16,185,129,0.15);
-    color: #34D399;
-    border: 1px solid rgba(16,185,129,0.3);
-    border-radius: 20px;
-    letter-spacing: 0.3px;
+.tl-badge-b {
+    font-size: .58rem; font-weight: 700; padding: 2px 7px;
+    background: rgba(37,99,235,.2); color: #60a5fa;
+    border: 1px solid rgba(37,99,235,.35); border-radius: 20px;
+    animation: tl-pulse 1.8s infinite;
 }
-.step-badge-pending {
-    font-size: 0.6rem;
-    font-weight: 600;
-    padding: 2px 7px;
-    background: rgba(100,116,139,0.1);
-    color: rgba(100,116,139,0.6);
-    border: 1px solid rgba(100,116,139,0.15);
-    border-radius: 20px;
+.tl-badge-x {
+    font-size: .58rem; font-weight: 600; padding: 2px 7px;
+    background: rgba(100,116,139,.1); color: rgba(100,116,139,.55);
+    border: 1px solid rgba(100,116,139,.15); border-radius: 20px;
 }
-.step-badge-active {
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 2px 7px;
-    background: rgba(37,99,235,0.2);
-    color: #60A5FA;
-    border: 1px solid rgba(37,99,235,0.35);
-    border-radius: 20px;
-    animation: pulse-badge 2s infinite;
-}
-@keyframes pulse-badge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-}
-
-/* ══════════════════════════════════════════════════════
-   SIDEBAR RESET BUTTON
-══════════════════════════════════════════════════════ */
+/* ── RESET BUTTON ─────────────────────────────────────── */
 [data-testid="stSidebar"] .stButton > button {
-    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1)) !important;
-    color: #FCA5A5 !important;
-    border: 1px solid rgba(239,68,68,0.3) !important;
+    background: linear-gradient(135deg,rgba(239,68,68,.15),rgba(220,38,38,.1)) !important;
+    color: #fca5a5 !important;
+    border: 1px solid rgba(239,68,68,.3) !important;
     border-radius: 8px !important;
-    font-size: 0.8rem !important;
+    font-size: .8rem !important;
     font-weight: 600 !important;
-    padding: 8px 12px !important;
-    transition: all 0.2s ease !important;
-    letter-spacing: 0.2px !important;
+    transition: all .2s ease !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(220,38,38,0.2)) !important;
-    border-color: rgba(239,68,68,0.5) !important;
-    color: #FECACA !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(239,68,68,0.2) !important;
+    background: linear-gradient(135deg,rgba(239,68,68,.3),rgba(220,38,38,.2)) !important;
+    color: #fecaca !important;
+    border-color: rgba(239,68,68,.5) !important;
+    box-shadow: 0 4px 12px rgba(239,68,68,.2) !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   SIDEBAR FOOTER
-══════════════════════════════════════════════════════ */
-.sidebar-footer {
-    padding: 12px 20px;
-    border-top: 1px solid rgba(99,179,237,0.1);
-    margin-top: 8px;
-}
-.sidebar-footer-text {
-    font-size: 0.65rem;
-    color: rgba(100,116,139,0.6);
+/* ── SIDEBAR FOOTER ────────────────────────────────────── */
+.tl-footer {
+    padding: 10px 18px;
+    border-top: 1px solid rgba(99,179,237,.1);
+    margin-top: 6px;
     text-align: center;
-    line-height: 1.6;
+    font-size: .62rem;
+    color: rgba(100,116,139,.55);
+    line-height: 1.7;
 }
-
-/* ══════════════════════════════════════════════════════
-   MAIN PAGE METRIC CARDS
-══════════════════════════════════════════════════════ */
+/* ── MAIN METRIC CARDS ────────────────────────────────── */
 div[data-testid="stMetric"] {
-    background: linear-gradient(135deg, #F8FAFF 0%, #EFF6FF 100%);
-    border: 1px solid #BFDBFE;
+    background: linear-gradient(135deg,#f8faff,#eff6ff) !important;
+    border: 1px solid #bfdbfe !important;
     padding: 16px 20px !important;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(37,99,235,0.08), 0 4px 16px rgba(37,99,235,0.04);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(37,99,235,.07) !important;
+    transition: transform .18s ease, box-shadow .18s ease !important;
 }
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(37,99,235,0.12);
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(37,99,235,.12) !important;
 }
 div[data-testid="stMetric"] label {
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
+    font-size: .72rem !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    color: #3B82F6 !important;
+    letter-spacing: .5px !important;
+    color: #3b82f6 !important;
 }
 div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-    font-size: 1.8rem !important;
+    font-size: 1.75rem !important;
     font-weight: 800 !important;
-    color: #1E3A8A !important;
+    color: #1e3a8a !important;
     line-height: 1.1 !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   GENERAL BUTTONS
-══════════════════════════════════════════════════════ */
-.stButton > button[kind="primary"],
-.stButton > button {
+/* ── BUTTONS ──────────────────────────────────────────── */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg,#2563eb,#7c3aed) !important;
+    border: none !important;
     border-radius: 8px !important;
     font-weight: 600 !important;
-    font-size: 0.875rem !important;
-    transition: all 0.2s ease !important;
-    letter-spacing: 0.2px !important;
-}
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #2563EB, #7C3AED) !important;
-    border: none !important;
-    box-shadow: 0 4px 15px rgba(37,99,235,0.35) !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,.35) !important;
+    transition: all .2s ease !important;
 }
 .stButton > button[kind="primary"]:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(37,99,235,0.45) !important;
+    box-shadow: 0 6px 20px rgba(37,99,235,.45) !important;
 }
-
-/* ══════════════════════════════════════════════════════
-   DATAFRAME & TABLE
-══════════════════════════════════════════════════════ */
-[data-testid="stDataFrame"] {
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-}
-
-/* ══════════════════════════════════════════════════════
-   EXPANDER
-══════════════════════════════════════════════════════ */
-[data-testid="stExpander"] {
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 10px !important;
-    background: #F8FAFC !important;
-}
-[data-testid="stExpander"]:hover {
-    border-color: #BFDBFE !important;
-}
-
-/* ══════════════════════════════════════════════════════
-   TABS
-══════════════════════════════════════════════════════ */
-[data-testid="stTabs"] [data-testid="stTab"] {
-    font-weight: 600 !important;
-    font-size: 0.875rem !important;
-    padding: 8px 20px !important;
-    border-radius: 8px 8px 0 0 !important;
-    color: #64748B !important;
-}
-[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] {
-    color: #2563EB !important;
-    border-bottom-color: #2563EB !important;
-}
-
-/* ══════════════════════════════════════════════════════
-   ALERTS / INFO BOXES
-══════════════════════════════════════════════════════ */
-[data-testid="stAlert"] {
-    border-radius: 10px !important;
-    border-left-width: 4px !important;
-    font-size: 0.9rem !important;
-}
-
-/* ══════════════════════════════════════════════════════
-   SCROLLBAR STYLING
-══════════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(99,179,237,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(99,179,237,0.5); }
-
-/* ══════════════════════════════════════════════════════
-   HIDE STREAMLIT DEFAULT DECORATIONS
-══════════════════════════════════════════════════════ */
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
-
+/* ── MISC ──────────────────────────────────────────────── */
+[data-testid="stDataFrame"] { border-radius:10px !important; overflow:hidden !important; }
+[data-testid="stExpander"] { border-radius:10px !important; }
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-thumb { background:rgba(99,179,237,.35); border-radius:3px; }
+#MainMenu { visibility:hidden; }
+footer { visibility:hidden; }
+header { visibility:hidden; }
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(_CSS, unsafe_allow_html=True)
 
-# ─── Initialize Session State ─────────────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────────────────────
 init_session_state()
 
-# ─── Sidebar ──────────────────────────────────────────────────────────────────
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
 
-    # ── Brand Header ──────────────────────────────────────────────────────────
+    # Brand
     st.markdown("""
-    <div class="brand-header">
-        <div class="brand-logo">
-            <div class="brand-icon">🔍</div>
-            <div>
-                <div class="brand-name">TopicLens AI</div>
-                <div class="brand-tagline">Intelligent Topic Discovery Platform</div>
-            </div>
-        </div>
-        <div class="brand-badge">BCA · AI & Data Science · Project #9</div>
+<div class="tl-brand">
+  <div class="tl-brand-row">
+    <div class="tl-brand-icon">🔍</div>
+    <div>
+      <div class="tl-brand-name">TopicLens AI</div>
+      <div class="tl-brand-tag">Intelligent Topic Discovery Platform</div>
     </div>
-    """, unsafe_allow_html=True)
+  </div>
+  <div class="tl-brand-pill">BCA &middot; AI &amp; Data Science &middot; Project #9</div>
+</div>
+""", unsafe_allow_html=True)
 
-    # ── Navigation ────────────────────────────────────────────────────────────
-    st.markdown('<div class="nav-section-label">Navigation</div>', unsafe_allow_html=True)
+    # Navigation
+    st.markdown('<div class="tl-nav-label">Navigation</div>', unsafe_allow_html=True)
 
     PAGES = [
         "🏠 Home Dashboard",
@@ -475,62 +333,61 @@ with st.sidebar:
     )
     st.session_state["current_page"] = selected_page
 
-    # ── Pipeline Status ───────────────────────────────────────────────────────
-    ds_ok   = has_dataset()
-    prep_ok = has_cleaned_data()
-    tm      = st.session_state.get("topic_modeler")
-    model_ok = bool(tm and tm.is_fitted)
+    # Pipeline status
+    ds_ok    = has_dataset()
+    prep_ok  = has_cleaned_data()
+    tm       = st.session_state.get("topic_modeler")
+    model_ok = bool(tm and getattr(tm, "is_fitted", False))
 
-    def _step(label, done, badge_done="DONE", badge_pending="PENDING", active=False):
-        dot   = 'step-dot-done'   if done else 'step-dot-pending'
-        lbl   = 'step-label-done' if done else 'step-label-pending'
-        badge = f'step-badge-done" >{badge_done}' if done else (
-                f'step-badge-active" >{badge_pending}' if active else
-                f'step-badge-pending" >{badge_pending}')
-        return f"""
-        <div class="pipeline-step">
-            <div class="{dot}"></div>
-            <span class="{lbl}">{label}</span>
-            <span class="{badge}</span>
-        </div>"""
+    def _step_html(label, state):
+        # state: "done" | "active" | "wait"
+        dot   = {"done": "tl-dot-g", "active": "tl-dot-b", "wait": "tl-dot-x"}[state]
+        lbl   = {"done": "tl-lbl-g", "active": "tl-lbl-b", "wait": "tl-lbl-x"}[state]
+        badge = {"done": "tl-badge-g", "active": "tl-badge-b", "wait": "tl-badge-x"}[state]
+        text  = {"done": "DONE", "active": "ACTIVE", "wait": "PENDING"}[state]
+        return (
+            f'<div class="tl-step">'
+            f'<div class="{dot}"></div>'
+            f'<span class="tl-step-lbl {lbl}">{label}</span>'
+            f'<span class="{badge}">{text}</span>'
+            f'</div>'
+        )
 
-    k_str = f"K={tm.n_topics}" if model_ok else "TRAIN"
+    k_label = f"K={tm.n_topics}" if model_ok else "TRAIN"
 
-    pipeline_html = f"""
-    <div class="pipeline-container">
-        <div class="pipeline-title">⚡ Pipeline Status</div>
-        {_step("Dataset Loaded", ds_ok,   badge_pending="UPLOAD", active=not ds_ok)}
-        {_step("Preprocessing", prep_ok,  badge_pending="CLEAN",  active=ds_ok and not prep_ok)}
-        {_step("LDA Model",     model_ok, badge_done=k_str, badge_pending="TRAIN", active=prep_ok and not model_ok)}
-    </div>
-    """
-    st.markdown(pipeline_html, unsafe_allow_html=True)
+    ds_state    = "done"   if ds_ok    else "active"
+    prep_state  = "done"   if prep_ok  else ("active" if ds_ok    else "wait")
+    model_state = "done"   if model_ok else ("active" if prep_ok  else "wait")
 
-    # ── Reset ─────────────────────────────────────────────────────────────────
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    pipe_html = (
+        '<div class="tl-pipe">'
+        '<div class="tl-pipe-title">⚡ Pipeline Status</div>'
+        + _step_html("Dataset Loaded", ds_state)
+        + _step_html("Preprocessing",  prep_state)
+        + _step_html(f"LDA Model ({k_label})" if model_ok else "LDA Model", model_state)
+        + "</div>"
+    )
+    st.markdown(pipe_html, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
     if st.button("🔄 Reset Pipeline", use_container_width=True):
         reset_pipeline()
         st.session_state["current_page"] = "🏠 Home Dashboard"
-        st.success("Pipeline reset successfully.")
+        st.success("Pipeline reset.")
         st.rerun()
 
-    # ── Footer ────────────────────────────────────────────────────────────────
-    st.markdown("""
-    <div class="sidebar-footer">
-        <div class="sidebar-footer-text">
-            TopicLens AI · v2.0<br>
-            Text Topic Modelling · LDA<br>
-            BCA Capstone · 2024
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tl-footer">TopicLens AI &nbsp;·&nbsp; v2.0<br>'
+        'Text Topic Modelling &nbsp;·&nbsp; LDA<br>'
+        'BCA Capstone &nbsp;·&nbsp; 2024</div>',
+        unsafe_allow_html=True,
+    )
 
-
-# ─── Page Router ──────────────────────────────────────────────────────────────
-if   selected_page == "🏠 Home Dashboard":    render_home_view()
-elif selected_page == "📂 Dataset Upload":    render_dataset_view()
+# ── Router ────────────────────────────────────────────────────────────────────
+if   selected_page == "🏠 Home Dashboard":     render_home_view()
+elif selected_page == "📂 Dataset Upload":     render_dataset_view()
 elif selected_page == "🧹 Data Preprocessing": render_preprocessing_view()
-elif selected_page == "⚙️ Topic Modelling":   render_topic_modelling_view()
+elif selected_page == "⚙️ Topic Modelling":    render_topic_modelling_view()
 elif selected_page == "🔍 Topic Exploration":  render_topic_exploration_view()
 elif selected_page == "📄 Document Analysis":  render_document_analysis_view()
 elif selected_page == "📊 Visual Analytics":   render_visual_analytics_view()
