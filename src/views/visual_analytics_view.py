@@ -1,25 +1,24 @@
 """
 src/views/visual_analytics_view.py
-Visual Analytics View: 2D Document Topic Space (PCA), Heatmaps,
-Corpus Word Clouds, and Topic Macro Proportions.
+Visual Analytics View: Heatmaps, Topic Macro Proportions,
+and Overall Corpus Word Clouds.
 """
 
 import streamlit as st
 from src.session_manager import has_trained_model
 from src.visualization import (
-    plot_document_pca_projection,
     plot_document_topic_heatmap,
     plot_topic_distribution,
     plot_topic_pie,
-    generate_overall_wordcloud
+    generate_overall_wordcloud,
 )
 
 
 def render_visual_analytics_view():
-    st.title("📊 Visual Analytics & Topic Space")
+    st.title("📊 Visual Analytics & Topic Distributions")
     st.write(
-        "Explore multi-dimensional topic geometry, document cluster separation in 2D PCA space, "
-        "document-topic probability heatmaps, and macro corpus distributions."
+        "Explore document-topic probability heatmaps, macro corpus distributions, "
+        "and overall corpus word clouds."
     )
 
     if not has_trained_model():
@@ -31,42 +30,28 @@ def render_visual_analytics_view():
     cleaned_df = st.session_state.get('cleaned_df')
 
     tabs = st.tabs([
-        "🌌 2D Document Topic Space (PCA)",
         "🔥 Document-Topic Heatmap",
         "📈 Topic Prevalence & Proportions",
         "☁️ Overall Corpus Word Cloud"
     ])
 
-    # --- TAB 1: 2D PCA PROJECTION ---
+    # --- TAB 1: DOCUMENT-TOPIC HEATMAP ---
     with tabs[0]:
-        st.subheader("🌌 2D Document Topic Space Projection")
-        st.write(
-            "High-dimensional document-topic probability distributions are projected onto a 2D plane "
-            "using Principal Component Analysis (PCA). Points are colored by their dominant topic, "
-            "revealing thematic clustering and document neighborhood structures."
-        )
-
-        if tm.doc_topic_dist is not None:
-            fig_pca = plot_document_pca_projection(tm.doc_topic_dist, doc_df)
-            if fig_pca:
-                st.plotly_chart(fig_pca, use_container_width=True)
-            else:
-                st.info("PCA projection ready.")
-        else:
-            st.warning("Document topic distributions not found.")
-
-    # --- TAB 2: DOCUMENT-TOPIC HEATMAP ---
-    with tabs[1]:
         st.subheader("🔥 Document-Topic Probability Heatmap")
         st.write("Inspect how topic probabilities are distributed across individual documents.")
 
-        max_docs = st.slider("Number of Documents to Display:", min_value=10, max_value=min(60, len(doc_df)), value=min(25, len(doc_df)))
+        max_docs = st.slider(
+            "Number of Documents to Display:",
+            min_value=10,
+            max_value=min(60, len(doc_df)),
+            value=min(25, len(doc_df))
+        )
         fig_heat = plot_document_topic_heatmap(doc_df, n_topics=tm.n_topics, max_docs=max_docs)
         if fig_heat:
             st.plotly_chart(fig_heat, use_container_width=True)
 
-    # --- TAB 3: TOPIC PREVALENCE ---
-    with tabs[2]:
+    # --- TAB 2: TOPIC PREVALENCE ---
+    with tabs[1]:
         st.subheader("📈 Macro Topic Distribution")
         c1, c2 = st.columns(2)
         with c1:
@@ -78,8 +63,8 @@ def render_visual_analytics_view():
             if fig_pie:
                 st.plotly_chart(fig_pie, use_container_width=True)
 
-    # --- TAB 4: CORPUS WORD CLOUD ---
-    with tabs[3]:
+    # --- TAB 3: CORPUS WORD CLOUD ---
+    with tabs[2]:
         st.subheader("☁️ Overall Corpus Term Frequency Cloud")
         st.write("Visual representation of highest frequency cleaned terms across all documents.")
         if cleaned_df is not None and 'clean_text' in cleaned_df.columns:
