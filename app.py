@@ -27,7 +27,6 @@ from src.views.topic_exploration_view import render_topic_exploration_view
 from src.views.document_analysis_view import render_document_analysis_view
 from src.views.visual_analytics_view import render_visual_analytics_view
 from src.views.export_results_view import render_export_results_view
-from src.views.about_project_view import render_about_project_view
 
 # ── Page config (must be first Streamlit call) ────────────────────────────────
 st.set_page_config(
@@ -316,7 +315,6 @@ with st.sidebar:
         "📄 Document Analysis",
         "📊 Visual Analytics",
         "💾 Export Results",
-        "ℹ️ About Project",
     ]
 
     default_index = 0
@@ -390,4 +388,3 @@ elif selected_page == "🔍 Topic Exploration":  render_topic_exploration_view()
 elif selected_page == "📄 Document Analysis":  render_document_analysis_view()
 elif selected_page == "📊 Visual Analytics":   render_visual_analytics_view()
 elif selected_page == "💾 Export Results":     render_export_results_view()
-elif selected_page == "ℹ️ About Project":      render_about_project_view()
